@@ -1,0 +1,19 @@
+{
+  "name": "compressjs",
+  "version": "1.0.0",
+  "description": "Utility to compress/uncompress files",
+  "main": "./bin/main.js",
+  "bin": {
+    "main.js": "./bin/main.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Darkhan Kubigenov",
+  "license": "ISC",
+  "dependencies": {
+    "argparse": "^1.0.2",
+    "coffee-script": "^1.10.0",
+    "underscore": "^1.8.3"
+  }
+}
