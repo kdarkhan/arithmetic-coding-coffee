@@ -2,3 +2,4 @@
 For the compression assignment I decided to use arithmetic coding algorithm. Initially, I was going for Huffman coding, but after doing some research I found that arithmetic coding performs better.
 I haven't finished coding yet.
 I am planning to subdivide original input into several parts and compress each part separately. I am hoping that alphabet required to encode each part will be smaller than of the whole input. If the space savings are large enough I will be able to exceed the overhead needed for storing each separate dictionary. I will need to test if this approach provides any benefit, and if not, I will end up using a single dictionary for the whole input.
+For verifying the integrity of the file, I will use md5 checksum during decompression.

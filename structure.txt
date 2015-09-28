@@ -2,9 +2,11 @@
  === Compressed file structure ===
     - Original file size [32 bits, 4 bytes] (maximum 2^32 bytes can be encoded)
     - Original file checksum [16 bytes] (using md5)
-    - Beginning of payload, end of dictionary [32 bits, 4 bytes] (will use only if the dictionary is of varying size)
+    - Dictionary size [4 bytes]
+    - Dictionary [* bytes] (varying size)
     - Payload size in bytes [32 bits]
-    - Dictionary [256 bytes]
+    - Compressed payload
+  = TODO: Maybe another dictionary/payload following this if dividing the payload into parts
 
 TODO:
     - Maybe store the filename to restore it

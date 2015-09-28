@@ -29,7 +29,6 @@ init = ->
     help: 'Name of the output file'
 
   args = parser.parseArgs()
-  console.dir args
 
   if args.extract
     decompress.decompress args.inputFile, args.outputFile
