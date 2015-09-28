@@ -13,13 +13,13 @@ init = ->
 
   parser.addArgument ['-x', '--extract'],
     help: 'Extract compressed file'
-    type: toBoolean
-    defaultValue: false
+    nargs: '?'
+    constant: true
 
   parser.addArgument ['-c', '--compress'],
     help: 'Compress the input file'
-    type: toBoolean
-    defaultValue: false
+    nargs: '?'
+    constant: true
 
   parser.addArgument ['-f', '--inputFile'],
     help: 'Input file to the programm'
