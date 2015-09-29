@@ -30,20 +30,20 @@ writeBufferToFile = (buffer, length, filename) ->
   stream.write sliceBuffer
   console.log 'write complete'
 
-writeHeader = (fileBuffer, freqMap, callback) ->
+writeHeader = (buffer, dictionary, callback) ->
   # write file dictionary and other metadata
   console.log 'Header was written to temp file'
-  callback null, 0
+  freqMap.writeDictionary buffer, dictionary, 1, (err, bytesWritten) ->
+    buffer.writeUInt8 bytesWritten, 0
+    callback null, bytesWritten + 1
 decToBin = (num) ->
   (num >>> 0).toString 2
 isUnderflow = (low, high) ->
   (low & 0xC000) == (high & 0xC000)
-
-
 encode = (dataBuffer, freqMap) ->
   # arithmetic encoding algorithm
   console.log 'encode() called'
-  buffer = new Buffer Math.max dataBuffer.length * 2, 1000
+  buffer = new Buffer Math.max dataBuffer.length * 2, 10000
   writeHeader buffer, freqMap, (err, sizeWritten) ->
     if err
       console.error err

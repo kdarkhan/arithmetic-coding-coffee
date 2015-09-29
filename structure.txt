@@ -11,3 +11,8 @@
 TODO:
     - Maybe store the filename to restore it
     - Create a separator for dictionary entries if storing more than one byte per entry
+
+=== New format of the compressed file ===
+    - Dictionary size [1 byte]
+    - Dictionary [varying size]
+    - Payload

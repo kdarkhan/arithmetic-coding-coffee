@@ -12,18 +12,18 @@ init = ->
     description : 'Simple compress/decompress utility'
 
   parser.addArgument ['-x', '--extract'],
-    help: 'Extract compressed file'
-    nargs: '?'
-    constant: true
+    help : 'Extract compressed file'
+    nargs : '?'
+    constant : true
 
   parser.addArgument ['-c', '--compress'],
-    help: 'Compress the input file'
-    nargs: '?'
-    constant: true
+    help : 'Compress the input file'
+    nargs : '?'
+    constant : true
 
   parser.addArgument ['-f', '--inputFile'],
-    help: 'Input file to the programm'
-    required: true
+    help : 'Input file to the programm'
+    required : true
 
   parser.addArgument ['-o', '--outputFile'],
     help: 'Name of the output file'

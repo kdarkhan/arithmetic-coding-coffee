@@ -44,5 +44,38 @@ createFrequencyMap = (dataBuffer, callback) ->
       largest = freqMap[byte]
   callback null, scaleFrequencyMap freqMap, largest
 
+writeDictionary = (buffer, freqMap, startOffset, callback) ->
+  nextOffset = startOffset
+  highValues = freqMap.highValues
+  lowValues = freqMap.lowValues
+  keys = Object.keys highValues
+  # sort keys array as it is not guaranteed to be in order
+  keys.sort (a, b) ->
+    highValues[a] - highValues[b]
+  for key, index in keys
+    buffer.writeUInt8 key, nextOffset
+    buffer.writeUInt8 highValues[key] - lowValues[key], nextOffset + 1
+    nextOffset += 2
+  callback null, nextOffset - startOffset
+
+parseDictionary = (buffer, startOffset, entryCount, callback) ->
+  console.log 'parseDictionary called with dictionary size ' + entryCount
+
+  highValues = {}
+  lowValues = {}
+  lastSum = 0
+  for i in [0...entryCount]
+    key = buffer.readUInt8 startOffset + i * 2
+    value = buffer.readUInt8 startOffset + i * 2 + 1
+    lowValues[key] = lastSum
+    lastSum += value
+    highValues[key] = lastSum
+  callback
+    highValues : highValues
+    lowValues : lowValues
+    scale : lastSum
+
 module.exports =
   createFrequencyMap : createFrequencyMap
+  writeDictionary : writeDictionary
+  parseDictionary :parseDictionary 
