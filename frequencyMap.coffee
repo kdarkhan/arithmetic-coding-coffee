@@ -18,12 +18,17 @@ scaleFrequencyMap = (freqMap, maxValue) ->
   if sum >= 16384
     for key, value of newMap
       newMap[key] = parseInt value / 2
-  keyArray.sort (a, b) ->
-    a - b
-  valueArray = keyArray.map (key) ->
-    newMap[key]
-  keys: keyArray
-  values: valueArray
+    sum = parseInt sum / 2
+  highValues = {}
+  lowValues = {}
+  lastSum = 0
+  keyArray.forEach (key) ->
+    lowValues[key] = lastSum
+    highValues[key] = lastSum + newMap[key]
+    lastSum += newMap[key]
+  highValues: highValues
+  lowValues: lowValues
+  scale: sum
 
 createFrequencyMap = (dataBuffer, callback) ->
   console.log 'createFrequencyMap() called'
@@ -31,7 +36,7 @@ createFrequencyMap = (dataBuffer, callback) ->
   largest = 0
   for index in [0 ... dataBuffer.length]
     byte = dataBuffer.readUInt8 index
-    if freqMap[byte]
+    if byte of freqMap
       freqMap[byte] += 1
     else
       freqMap[byte] = 1
