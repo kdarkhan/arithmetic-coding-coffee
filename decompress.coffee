@@ -27,6 +27,9 @@ readFile = (inputFile, callback) ->
 isUnderflow = (low, high) ->
   (low & 0xC000) == (high & 0xC000)
 
+decToBin = (num) ->
+  (num >>> 0).toString 2
+
 decompress = (inputFile, outputFile) ->
   # TODO: remove this line
   inputFile = 'compress.temp.swp'
@@ -44,6 +47,8 @@ decompress = (inputFile, outputFile) ->
       keys = dictionary.keys
       console.log 'high values is '
       console.dir highValues
+      console.log 'low values is '
+      console.dir lowValues
       console.dir keys
       scale = dictionary.scale
       high = 0xFFFF
@@ -59,18 +64,18 @@ decompress = (inputFile, outputFile) ->
         # find new high and low
         high = (low + ((range * highValues[byte]) / scale) - 1) & 0xFFFF
         low = (low + (range * lowValues[byte] / scale)) & 0xFFFF
-        console.log "low high is #{low} #{high}"
-        # assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
+        console.log "low high is #{scale} ===== #{decToBin low} #{decToBin high} --- #{highValues[byte]} #{lowValues[byte]}"
+        assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
 
         # shift logic
         while true
           if (msb & high) == (msb & low)
             # do nothing
-            null 
+            0
           else if isUnderflow low, high
             low = low & 0x3FFF
-            high = high | 4000
-            code = code ^ 4000
+            high = high | 0x4000
+            code = code ^ 0x4000
           else
             break
           low = (low << 1) & 0xFFFF
@@ -81,7 +86,7 @@ decompress = (inputFile, outputFile) ->
           if shiftCount >= 16
             shiftCount = 0
             offset += 2
-            nextCode = ((buffer.readUInt8 offset + 2) << 8) & (buffer.readUInt8 offset + 3) 
+            nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3) 
 
 module.exports =
   decompress: decompress
