@@ -70,10 +70,15 @@ parseDictionary = (buffer, startOffset, entryCount, callback) ->
     lowValues[key] = lastSum
     lastSum += value
     highValues[key] = lastSum
-  callback
+  keys = Object.keys highValues
+  # sort keys array as it is not guaranteed to be in order
+  keys.sort (a, b) ->
+    highValues[a] - highValues[b]  
+  callback null, 
     highValues : highValues
     lowValues : lowValues
     scale : lastSum
+    keys : keys
 
 module.exports =
   createFrequencyMap : createFrequencyMap
