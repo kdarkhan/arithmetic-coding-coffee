@@ -33,8 +33,8 @@ decToBin = (num) ->
   (num >>> 0).toString 2
 
 writeBufferToFile = (buffer, filename) ->
-  console.log "Saving file to #{filename}"
   filename = filename || 'test.out'
+  console.log "Saving file to #{filename}"
   fs.writeFile filename, buffer, (err, res) ->
     if err
       console.error 'could not write to file'
@@ -69,7 +69,7 @@ decompress = (inputFile, outputFile) ->
       msb = 0x8000
       code = ((buffer.readUInt8 offset) << 8) | (buffer.readUInt8 offset + 1)
       nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3)
-      while offset <= buffer.length - 20
+      while offset < buffer.length - 3
         range = high - low + 1
         temp = (((code - low) + 1) * scale - 1) / range
         byte = binarySearch keys, highValues, temp
@@ -99,7 +99,9 @@ decompress = (inputFile, outputFile) ->
           if shiftCount >= 16
             shiftCount = 0
             offset += 2
-            nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3) 
+            # check if buffer is finished
+            if offset + 3 < buffer.length
+              nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3) 
       writeBufferToFile (outBuffer.slice 0, offset), outputFile
 
 module.exports =
