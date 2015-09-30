@@ -46,8 +46,6 @@ encode = (dataBuffer, freqMap) ->
     if err
       console.error err
     else
-      # TODO: change offset
-      # TODO: use separate buffer, not stream
       nextOffset = sizeWritten
       accumulator = 0 
       index = 0
@@ -73,7 +71,8 @@ encode = (dataBuffer, freqMap) ->
       underflowBits = 0
       finalizeEncoding = (low) ->
         bitWriter low & 0x4000
-        while underflowBits-- > 0
+        while underflowBits > 0
+          underflowBits -= 1
           bitWriter ~(low & 0x4000)
         for i in [1..15]
           bitWriter 0
@@ -89,10 +88,11 @@ encode = (dataBuffer, freqMap) ->
             nextBit = if (msb & low) > 0 then 1 else 0
             # console.log "#{range} #{decToBin high} #{decToBin low} #{decToBin byte}"
             bitWriter nextBit
-            while underflowBits-- > 0
+            while underflowBits > 0
+              underflowBits -= 1
               bitWriter ~nextBit
           else if isUnderflow low, high
-            console.log 'udnerflow found ------------------------------------------------------'
+            console.log 'udnerflow found ======================================================'
             underflowBits += 1
             low = low & 0x3FFF
             high = high | 0x4000
