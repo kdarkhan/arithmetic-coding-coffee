@@ -15,8 +15,6 @@ compress = (inputFile, outputFile) ->
         if err
           console.err err
         else
-          # assert.ok map?.values && map.keys, 'freqMap is not a valid object'
-          console.log 'darkhan --------'
           console.dir map
           encode dataBuffer, map, (err, result) ->
             if err
@@ -56,7 +54,7 @@ encode = (dataBuffer, freqMap) ->
       bitWriter = (bit) ->
         console.log 'bit is ' + bit
         # composes bits to groups of bytes and flushes complete bytes
-        accumulator = ( if bit > 0 then 1 else 0 ) + ( accumulator << 1 )
+        accumulator = ( if bit > 0 then 1 else 0 ) | ( accumulator << 1 )
         index += 1
         if index == 8
           console.log 'writing byte ' + accumulator
@@ -89,7 +87,7 @@ encode = (dataBuffer, freqMap) ->
         while true
           if (msb & low) == (msb & high)
             nextBit = if (msb & low) > 0 then 1 else 0
-            console.log "#{range} #{decToBin high} #{decToBin low} #{decToBin byte}"
+            # console.log "#{range} #{decToBin high} #{decToBin low} #{decToBin byte}"
             bitWriter nextBit
             while underflowBits-- > 0
               bitWriter ~nextBit
