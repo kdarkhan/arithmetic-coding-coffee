@@ -84,23 +84,25 @@ encode = (dataBuffer, freqMap) ->
         byte = dataBuffer.readUInt8 i
         # rearrange the interval
         range = high - low + 1
-        high = low + ((range * highValues[byte]) / scale) - 1
-        low = low + (range * lowValues[byte]) / scale
-        if (msb & low) == (msb & high)
-          while (msb & low) == (msb & high)
+        high = low + ((range * highValues[byte]) / scale & 0xFFFF) - 1
+        low = low + (range * lowValues[byte] / scale  & 0xFFFF)
+        while true
+          if (msb & low) == (msb & high)
             nextBit = if (msb & low) > 0 then 1 else 0
             console.log "#{range} #{decToBin high} #{decToBin low} #{decToBin byte}"
             bitWriter nextBit
-            while underflowBits > 0
+            while underflowBits-- > 0
               bitWriter ~nextBit
-              underflowBits -= 1
-            high = ((high << 1) & 0xFFFF) | 0x0001
-            low = (low << 1) & 0xFFFF
-        else if isUnderflow low, high
-          console.log 'udnerflow found ------------------------------------------------------'
-          underflowBits += 1
-          low = ( low & 0x3FFF ) << 1
-          high = (( high | 0x4000 ) << 1) | 1
+          else if isUnderflow low, high
+            console.log 'udnerflow found ------------------------------------------------------'
+            underflowBits += 1
+            low = low & 0x3FFF
+            high = high | 0x4000
+          else
+            break
+          high = ((high << 1) & 0xFFFF) | 0x0001
+          low = (low << 1) & 0xFFFF
+        assert.ok low < high, 'low should be less than high'
       finalizeEncoding low
       writeBufferToFile buffer, nextOffset, TEMP_FILE_NAME
 
