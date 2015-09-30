@@ -2,6 +2,8 @@ assert = require 'assert'
 freqMap = require './frequencyMap'
 fs = require 'fs'
 
+MAX_BUFFER_SIZE = 100000
+
 binarySearch = (array, obj, entry) ->
   # optimize this to make binary search
   for value, index in array
@@ -30,6 +32,15 @@ isUnderflow = (low, high) ->
 decToBin = (num) ->
   (num >>> 0).toString 2
 
+writeBufferToFile = (buffer, filename) ->
+  console.log "Saving file to #{filename}"
+  filename = filename || 'test.out'
+  fs.writeFile filename, buffer, (err, res) ->
+    if err
+      console.error 'could not write to file'
+      console.error err
+    else
+      console.log 'file was written'
 decompress = (inputFile, outputFile) ->
   # TODO: remove this line
   inputFile = 'compress.temp.swp'
@@ -39,6 +50,8 @@ decompress = (inputFile, outputFile) ->
       console.error err
     else
       console.log "starting decompression #{buffer.length} #{startOffset}"
+      outBuffer = new Buffer MAX_BUFFER_SIZE
+      outBufferIndex = 0
       shiftCount = 0
       offset = startOffset
       lowValues = dictionary.lowValues
@@ -60,12 +73,12 @@ decompress = (inputFile, outputFile) ->
         range = high - low + 1
         temp = (((code - low) + 1) * scale - 1) / range
         byte = binarySearch keys, highValues, temp
-        console.log 'sym is  ' + byte
+        outBuffer.writeUInt8 byte, outBufferIndex++
         # find new high and low
         high = (low + ((range * highValues[byte]) / scale) - 1) & 0xFFFF
         low = (low + (range * lowValues[byte] / scale)) & 0xFFFF
         console.log "low high is #{scale} ===== #{decToBin low} #{decToBin high} --- #{highValues[byte]} #{lowValues[byte]}"
-        assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
+        # assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
 
         # shift logic
         while true
@@ -87,6 +100,7 @@ decompress = (inputFile, outputFile) ->
             shiftCount = 0
             offset += 2
             nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3) 
+      writeBufferToFile (outBuffer.slice 0, offset), outputFile
 
 module.exports =
   decompress: decompress
