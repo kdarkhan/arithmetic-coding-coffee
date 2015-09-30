@@ -1,3 +1,4 @@
+assert = require 'assert'
 freqMap = require './frequencyMap'
 fs = require 'fs'
 
@@ -7,8 +8,7 @@ binarySearch = (array, obj, entry) ->
     if entry < obj[value] && ((index > 0 && obj[array[index - 1]] <= entry) || (index == 0))
       console.log 'found index ' + index  + ' for entry ' + entry
       return value
-  console.log "did not find i #{entry}"
-  -1
+  throw new Error "Value is not found with such probability #{entry}"
 
 readFile = (inputFile, callback) ->
   console.log 'readFile() called'
@@ -35,7 +35,7 @@ decompress = (inputFile, outputFile) ->
     if err
       console.error err
     else
-      console.log 'starting decompression + ' + buffer.length
+      console.log "starting decompression #{buffer.length} #{startOffset}"
       shiftCount = 0
       offset = startOffset
       lowValues = dictionary.lowValues
@@ -48,18 +48,31 @@ decompress = (inputFile, outputFile) ->
       scale = dictionary.scale
       high = 0xFFFF
       low = 0x0000
-      msb = 0x8000 
+      msb = 0x8000
       while offset <= buffer.length - 20
         range = high - low + 1
-        code = ((buffer.readUInt8 offset) << 8) & (buffer.readUInt8 offset + 1)
-        nextCode = ((buffer.readUInt8 offset + 2) << 8) & (buffer.readUInt8 offset + 3)
-        temp = ((((code - low) + 1) * scale) - 1) / range
+        code = ((buffer.readUInt8 offset) << 8) | (buffer.readUInt8 offset + 1)
+        nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3)
+        temp = (((code - low) + 1) * scale - 1) / range
         byte = binarySearch keys, highValues, temp
         console.log 'sym is  ' + byte
-        high = low + ((range * highValues[byte]) / scale) - 1
-        low = low + (range * lowValues[byte]) / scale
-        shiftLogic = ->
-          console.log 'ehere'
+        # find new high and low
+        high = (low + ((range * highValues[byte]) / scale) - 1) & 0xFFFF
+        low = (low + (range * lowValues[byte] / scale)) & 0xFFFF
+        console.log "low high is #{low} #{high}"
+        assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
+
+        # shift logic
+        while true
+          if (msb & high) == (msb & low)
+            # do nothing
+            null 
+          else if isUnderflow low, high
+            low = low & 0x3FFF
+            high = high | 4000
+            code = code ^ 4000
+          else
+            break
           low = (low << 1) & 0xFFFF
           high = (high << 1) & 0xFFFF | 0x0001
           code = (code << 1) & 0xFFFF | ((nextCode & msb) >> 15)
@@ -69,14 +82,26 @@ decompress = (inputFile, outputFile) ->
             shiftCount = 0
             offset += 2
             nextCode = ((buffer.readUInt8 offset + 2) << 8) & (buffer.readUInt8 offset + 3) 
-        if (msb & high) == (msb & low)
-          shiftLogic()
-        else if isUnderflow low, high
-          console.log 'underflow found'
-          code = code ^ 0x4000
-          low = low & 0x3FFF
-          high = high | 0x4000
-          shiftLogic()
+
+        # shiftLogic = ->
+        #   console.log 'ehere'
+        #   low = (low << 1) & 0xFFFF
+        #   high = (high << 1) & 0xFFFF | 0x0001
+        #   code = (code << 1) & 0xFFFF | ((nextCode & msb) >> 15)
+        #   nextCode = (nextCode << 1) & 0xFFFF
+        #   shiftCount += 1
+        #   if shiftCount >= 16
+        #     shiftCount = 0
+        #     offset += 2
+        #     nextCode = ((buffer.readUInt8 offset + 2) << 8) & (buffer.readUInt8 offset + 3) 
+        # if (msb & high) == (msb & low)
+        #   shiftLogic()
+        # else if isUnderflow low, high
+        #   console.log 'underflow found'
+        #   code = code ^ 0x4000
+        #   low = low & 0x3FFF
+        #   high = high | 0x4000
+        #   shiftLogic()
 
 
 module.exports =

@@ -84,8 +84,8 @@ encode = (dataBuffer, freqMap) ->
         byte = dataBuffer.readUInt8 i
         # rearrange the interval
         range = high - low + 1
-        high = low + ((range * highValues[byte]) / scale & 0xFFFF) - 1
-        low = low + (range * lowValues[byte] / scale  & 0xFFFF)
+        high = (low + ((range * highValues[byte]) / scale) - 1) & 0xFFFF
+        low = (low + (range * lowValues[byte] / scale)) & 0xFFFF
         while true
           if (msb & low) == (msb & high)
             nextBit = if (msb & low) > 0 then 1 else 0
