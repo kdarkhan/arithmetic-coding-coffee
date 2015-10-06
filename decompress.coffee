@@ -24,7 +24,9 @@ readFile = (inputFile, callback) ->
         if err
           callback err
         else
-          callback null, res, buffer, 1 + dictSize
+          bytesSize = fs.statSync inputFile
+            .size
+          callback null, res, buffer, 1 + dictSize, bytesSize
 
 isUnderflow = (low, high) ->
   (low & 0x4000) && !(high & 0x4000)
@@ -44,7 +46,7 @@ writeBufferToFile = (buffer, filename) ->
 decompress = (inputFile, outputFile) ->
   # TODO: remove this line
   console.log 'decompress is called'
-  readFile inputFile, (err, dictionary, buffer, startOffset) ->
+  readFile inputFile, (err, dictionary, buffer, startOffset, fileSize) ->
     if err
       console.error err
     else
@@ -68,16 +70,18 @@ decompress = (inputFile, outputFile) ->
       msb = 0x8000
       code = ((buffer.readUInt8 offset) << 8) | (buffer.readUInt8 offset + 1)
       nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3)
-      while offset < buffer.length - 3
+      console.log 'file size is ---------------------------- file size is ' + fileSize
+      while offset < fileSize
+        console.log 'current offset is ' + offset
         range = high - low + 1
-        temp = (((code - low) + 1) * scale - 1) / range
+        temp = ((((code - low) + 1) * scale - 1) / range ) & 0xFFFF
         byte = binarySearch keys, highValues, temp
         outBuffer.writeUInt8 byte, outBufferIndex++
         # find new high and low
         high = (low + ((range * highValues[byte]) / scale) - 1) & 0xFFFF
         low = (low + (range * lowValues[byte] / scale)) & 0xFFFF
         console.log "low high is #{scale} ===== #{decToBin low} #{decToBin high} --- #{highValues[byte]} #{lowValues[byte]}"
-        # assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
+        assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
 
         # shift logic
         while true
@@ -99,8 +103,10 @@ decompress = (inputFile, outputFile) ->
             shiftCount = 0
             offset += 2
             # check if buffer is finished
-            if offset + 3 < buffer.length
+            if offset + 3 < fileSize
               nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3) 
+            else
+              nextCode = 0
       writeBufferToFile (outBuffer.slice 0, offset), outputFile
 
 module.exports =

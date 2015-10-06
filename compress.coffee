@@ -78,10 +78,12 @@ encode = (dataBuffer, freqMap, outputFile, callback) ->
         bitWriter low & 0x4000
         while underflowBits > 0
           underflowBits -= 1
-          bitWriter ~(low & 0x4000)
-        for i in [0..7]
+          bitWriter (low & 0x4000)
+        for i in [0..31]
           bitWriter 0
+      console.log "buffer length is --------------- is  #{dataBuffer.length}"
       for i in [0 ... dataBuffer.length]
+        console.log 'reading from buffer -------------- ' + i
         # read the character
         byte = dataBuffer.readUInt8 i
         # rearrange the interval
@@ -108,7 +110,7 @@ encode = (dataBuffer, freqMap, outputFile, callback) ->
           low = (low << 1) & 0xFFFF
         assert.ok low < high, 'low should be less than high'
       finalizeEncoding low
-      writeBufferToFile buffer, nextOffset, outputFile
+      writeBufferToFile buffer, nextOffset + 1, outputFile
 
 module.exports =
   compress : compress
