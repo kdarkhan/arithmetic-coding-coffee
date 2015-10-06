@@ -3,44 +3,49 @@ fs = require 'fs'
 freqMap = require './frequencyMap'
 bs = require 'binary-search'
 
+# console.log = ->
+
+logger = console.log
+
 TEMP_FILE_NAME = './compress.temp.swp'
 compress = (inputFile, outputFile) ->
-  console.log 'starting to compress file ' + inputFile
+  logger 'starting to compress file ' + inputFile
   fs.readFile inputFile, (err, dataBuffer) ->
     if err
       console.error "Could not open file #{inputFile}"
     else
-      console.log "#{inputFile} opened"
+      logger "#{inputFile} opened"
       freqMap.createFrequencyMap dataBuffer, (err, map) ->
         if err
           console.err err
         else
           console.dir map
-          encode dataBuffer, map, (err, result) ->
+          encode dataBuffer, map, outputFile, (err, result) ->
             if err
               console.err err
             else
-              console.log 'compressing complete'
+              logger 'compressing complete'
 
 writeBufferToFile = (buffer, length, filename) ->
   sliceBuffer = buffer.slice 0, length
   stream = fs.createWriteStream filename
-  stream.write sliceBuffer
-  console.log 'write complete'
+  stream.end sliceBuffer
+  logger "file #{filename} was written"
 
 writeHeader = (buffer, dictionary, callback) ->
   # write file dictionary and other metadata
-  console.log 'Header was written to temp file'
+  logger 'Header was written to temp file'
   freqMap.writeDictionary buffer, dictionary, 1, (err, bytesWritten) ->
     buffer.writeUInt8 bytesWritten, 0
     callback null, bytesWritten + 1
+
 decToBin = (num) ->
   (num >>> 0).toString 2
 isUnderflow = (low, high) ->
-  (low & 0xC000) == (high & 0xC000)
-encode = (dataBuffer, freqMap) ->
+  (low & 0x4000) && !(high & 0x4000)
+encode = (dataBuffer, freqMap, outputFile, callback) ->
   # arithmetic encoding algorithm
-  console.log 'encode() called'
+  logger 'encode() called'
   buffer = new Buffer Math.max dataBuffer.length * 2, 10000
   writeHeader buffer, freqMap, (err, sizeWritten) ->
     if err
@@ -50,12 +55,12 @@ encode = (dataBuffer, freqMap) ->
       accumulator = 0 
       index = 0
       bitWriter = (bit) ->
-        console.log 'bit is ' + bit
+        logger 'bit is ' + bit
         # composes bits to groups of bytes and flushes complete bytes
         accumulator = ( if bit > 0 then 1 else 0 ) | ( accumulator << 1 )
         index += 1
         if index == 8
-          console.log 'writing byte ' + accumulator
+          logger 'writing byte ' + accumulator
           buffer.writeUInt8 accumulator, nextOffset
           nextOffset += 1
           index = 0
@@ -64,7 +69,7 @@ encode = (dataBuffer, freqMap) ->
       highValues = freqMap.highValues
       lowValues = freqMap.lowValues
       scale = freqMap.scale
-      console.log 'Starting the actual encoding'
+      logger 'Starting the actual encoding'
       high = 0xFFFF
       low = 0x0000
       msb = 0x8000
@@ -74,7 +79,7 @@ encode = (dataBuffer, freqMap) ->
         while underflowBits > 0
           underflowBits -= 1
           bitWriter ~(low & 0x4000)
-        for i in [1..15]
+        for i in [0..7]
           bitWriter 0
       for i in [0 ... dataBuffer.length]
         # read the character
@@ -83,16 +88,17 @@ encode = (dataBuffer, freqMap) ->
         range = high - low + 1
         high = (low + ((range * highValues[byte]) / scale) - 1) & 0xFFFF
         low = (low + (range * lowValues[byte] / scale)) & 0xFFFF
+        logger "HIGH - LOW is #{decToBin high} - #{decToBin low}"
         while true
           if (msb & low) == (msb & high)
             nextBit = if (msb & low) > 0 then 1 else 0
-            # console.log "#{range} #{decToBin high} #{decToBin low} #{decToBin byte}"
+            # logger "#{range} #{decToBin high} #{decToBin low} #{decToBin byte}"
             bitWriter nextBit
             while underflowBits > 0
               underflowBits -= 1
-              bitWriter ~nextBit
+              bitWriter nextBit ^ 1
           else if isUnderflow low, high
-            console.log 'udnerflow found ======================================================'
+            logger 'underflow detected =============================================================='
             underflowBits += 1
             low = low & 0x3FFF
             high = high | 0x4000
@@ -102,7 +108,7 @@ encode = (dataBuffer, freqMap) ->
           low = (low << 1) & 0xFFFF
         assert.ok low < high, 'low should be less than high'
       finalizeEncoding low
-      writeBufferToFile buffer, nextOffset, TEMP_FILE_NAME
+      writeBufferToFile buffer, nextOffset, outputFile
 
 module.exports =
   compress : compress

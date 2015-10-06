@@ -2,7 +2,7 @@ assert = require 'assert'
 freqMap = require './frequencyMap'
 fs = require 'fs'
 
-MAX_BUFFER_SIZE = 100000
+MAX_BUFFER_SIZE = 10000000
 
 binarySearch = (array, obj, entry) ->
   # optimize this to make binary search
@@ -27,7 +27,7 @@ readFile = (inputFile, callback) ->
           callback null, res, buffer, 1 + dictSize
 
 isUnderflow = (low, high) ->
-  (low & 0xC000) == (high & 0xC000)
+  (low & 0x4000) && !(high & 0x4000)
 
 decToBin = (num) ->
   (num >>> 0).toString 2
@@ -43,7 +43,6 @@ writeBufferToFile = (buffer, filename) ->
       console.log 'file was written'
 decompress = (inputFile, outputFile) ->
   # TODO: remove this line
-  inputFile = 'compress.temp.swp'
   console.log 'decompress is called'
   readFile inputFile, (err, dictionary, buffer, startOffset) ->
     if err
