@@ -107,7 +107,7 @@ decompress = (inputFile, outputFile) ->
               nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3) 
             else
               nextCode = 0
-      writeBufferToFile (outBuffer.slice 0, offset), outputFile
+      writeBufferToFile (outBuffer.slice 0, outBufferIndex + 1), outputFile
 
 module.exports =
   decompress: decompress
