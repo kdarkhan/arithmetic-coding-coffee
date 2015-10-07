@@ -4,11 +4,13 @@ fs = require 'fs'
 
 MAX_BUFFER_SIZE = 10000000
 
+logger = ->
+
 binarySearch = (array, obj, entry) ->
   # optimize this to make binary search
   for value, index in array
     if entry < obj[value] && ((index > 0 && obj[array[index - 1]] <= entry) || (index == 0))
-      console.log 'found index ' + index  + ' for entry ' + entry
+      logger 'found index ' + index  + ' for entry ' + entry
       return value
   throw new Error "Value is not found with such probability #{entry}"
 
@@ -19,14 +21,13 @@ readFile = (inputFile, callback) ->
       callback err
     else
       dictSize = parseInt (buffer.readUInt8 0)
+      filesize = parseInt (buffer.readUInt32LE 1)
       dictEntries = dictSize / 2
-      freqMap.parseDictionary buffer, 1, dictEntries, (err, res) ->
+      freqMap.parseDictionary buffer, 5, dictEntries, (err, res) ->
         if err
           callback err
         else
-          bytesSize = fs.statSync inputFile
-            .size
-          callback null, res, buffer, 1 + dictSize, bytesSize
+          callback null, res, buffer, 5 + dictSize, filesize
 
 isUnderflow = (low, high) ->
   (low & 0x4000) && !(high & 0x4000)
@@ -45,12 +46,12 @@ writeBufferToFile = (buffer, filename) ->
       console.log 'file was written'
 decompress = (inputFile, outputFile) ->
   # TODO: remove this line
-  console.log 'decompress is called'
-  readFile inputFile, (err, dictionary, buffer, startOffset, fileSize) ->
+  logger 'decompress is called'
+  readFile inputFile, (err, dictionary, buffer, startOffset, filesize) ->
     if err
       console.error err
     else
-      console.log "starting decompression #{buffer.length} #{startOffset}"
+      logger "starting decompression #{buffer.length} #{startOffset}"
       outBuffer = new Buffer MAX_BUFFER_SIZE
       outBufferIndex = 0
       shiftCount = 0
@@ -59,9 +60,9 @@ decompress = (inputFile, outputFile) ->
       console.dir lowValues
       highValues = dictionary.highValues
       keys = dictionary.keys
-      console.log 'high values is '
+      logger 'high values is '
       console.dir highValues
-      console.log 'low values is '
+      logger 'low values is '
       console.dir lowValues
       console.dir keys
       scale = dictionary.scale
@@ -70,9 +71,9 @@ decompress = (inputFile, outputFile) ->
       msb = 0x8000
       code = ((buffer.readUInt8 offset) << 8) | (buffer.readUInt8 offset + 1)
       nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3)
-      console.log 'file size is ---------------------------- file size is ' + fileSize
-      while offset < fileSize
-        console.log 'current offset is ' + offset
+      logger 'file size is ---------------------------- file size is ' + filesize 
+      while outBufferIndex < filesize 
+        logger 'current offset is ' + offset
         range = high - low + 1
         temp = ((((code - low) + 1) * scale - 1) / range ) & 0xFFFF
         byte = binarySearch keys, highValues, temp
@@ -80,7 +81,7 @@ decompress = (inputFile, outputFile) ->
         # find new high and low
         high = (low + ((range * highValues[byte]) / scale) - 1) & 0xFFFF
         low = (low + (range * lowValues[byte] / scale)) & 0xFFFF
-        console.log "low high is #{scale} ===== #{decToBin low} #{decToBin high} --- #{highValues[byte]} #{lowValues[byte]}"
+        logger "low high is #{scale} ===== #{decToBin low} #{decToBin high} --- #{highValues[byte]} #{lowValues[byte]}"
         assert.ok low < high, "Low should be smaller than high #{highValues[byte]} #{high} #{scale} #{range}"
 
         # shift logic
@@ -103,11 +104,14 @@ decompress = (inputFile, outputFile) ->
             shiftCount = 0
             offset += 2
             # check if buffer is finished
-            if offset + 3 < fileSize
+            if offset + 3 < buffer.length
               nextCode = ((buffer.readUInt8 offset + 2) << 8) | (buffer.readUInt8 offset + 3) 
+            else if offset + 2 < buffer.length
+              nextCode = ((buffer.readUInt8 offset + 2) << 8)
             else
-              nextCode = 0
-      writeBufferToFile (outBuffer.slice 0, outBufferIndex + 1), outputFile
+              break
+              # nextCode = 0
+      writeBufferToFile (outBuffer.slice 0, outBufferIndex), outputFile
 
 module.exports =
   decompress: decompress

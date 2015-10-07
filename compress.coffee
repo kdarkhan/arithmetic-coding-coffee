@@ -3,9 +3,10 @@ fs = require 'fs'
 freqMap = require './frequencyMap'
 bs = require 'binary-search'
 
-# console.log = ->
 
 logger = console.log
+logger = ->
+
 
 TEMP_FILE_NAME = './compress.temp.swp'
 compress = (inputFile, outputFile) ->
@@ -32,12 +33,15 @@ writeBufferToFile = (buffer, length, filename) ->
   stream.end sliceBuffer
   logger "file #{filename} was written"
 
-writeHeader = (buffer, dictionary, callback) ->
+writeHeader = (buffer, dictionary, filesize, callback) ->
   # write file dictionary and other metadata
+  # first byte is dictionary size
+  # first word starting at offset 1 is decompressed size
   logger 'Header was written to temp file'
-  freqMap.writeDictionary buffer, dictionary, 1, (err, bytesWritten) ->
+  freqMap.writeDictionary buffer, dictionary, 5, (err, bytesWritten) ->
     buffer.writeUInt8 bytesWritten, 0
-    callback null, bytesWritten + 1
+    buffer.writeUInt32LE filesize, 1
+    callback null, bytesWritten + 5
 
 decToBin = (num) ->
   (num >>> 0).toString 2
@@ -47,7 +51,7 @@ encode = (dataBuffer, freqMap, outputFile, callback) ->
   # arithmetic encoding algorithm
   logger 'encode() called'
   buffer = new Buffer Math.max dataBuffer.length * 2, 10000
-  writeHeader buffer, freqMap, (err, sizeWritten) ->
+  writeHeader buffer, freqMap, dataBuffer.length, (err, sizeWritten) ->
     if err
       console.error err
     else
@@ -78,12 +82,17 @@ encode = (dataBuffer, freqMap, outputFile, callback) ->
         bitWriter low & 0x4000
         while underflowBits > 0
           underflowBits -= 1
-          bitWriter (low & 0x4000)
-        for i in [0..31]
-          bitWriter 0
-      console.log "buffer length is --------------- is  #{dataBuffer.length}"
+          bitWriter (low & 0x4000) != 0
+        if index > 0
+          accumulator = accumulator << (8 - index)
+          buffer.writeUInt8 accumulator, nextOffset
+          nextOffset += 1
+          index = 0
+          accumulator = 0
+        
+      logger "buffer length is --------------- is  #{dataBuffer.length}"
       for i in [0 ... dataBuffer.length]
-        console.log 'reading from buffer -------------- ' + i
+        logger 'reading from buffer -------------- ' + i
         # read the character
         byte = dataBuffer.readUInt8 i
         # rearrange the interval
@@ -113,4 +122,4 @@ encode = (dataBuffer, freqMap, outputFile, callback) ->
       writeBufferToFile buffer, nextOffset + 1, outputFile
 
 module.exports =
-  compress : compress
+  compress: compress
