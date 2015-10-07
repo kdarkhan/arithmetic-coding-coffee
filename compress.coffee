@@ -37,9 +37,9 @@ writeHeader = (buffer, dictionary, filesize, callback) ->
   # write file dictionary and other metadata
   # first byte is dictionary size
   # first word starting at offset 1 is decompressed size
-  logger 'Header was written to temp file'
   freqMap.writeDictionary buffer, dictionary, 5, (err, bytesWritten) ->
-    buffer.writeUInt8 bytesWritten, 0
+    console.log 'Header was written to temp file ' + bytesWritten
+    buffer.writeUInt8 (parseInt bytesWritten / 2) - 1, 0
     buffer.writeUInt32LE filesize, 1
     callback null, bytesWritten + 5
 

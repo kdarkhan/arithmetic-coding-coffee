@@ -20,9 +20,9 @@ readFile = (inputFile, callback) ->
     if err
       callback err
     else
-      dictSize = parseInt (buffer.readUInt8 0)
+      dictEntries = 1 + parseInt (buffer.readUInt8 0)
       filesize = parseInt (buffer.readUInt32LE 1)
-      dictEntries = dictSize / 2
+      dictSize = dictEntries * 2
       freqMap.parseDictionary buffer, 5, dictEntries, (err, res) ->
         if err
           callback err
