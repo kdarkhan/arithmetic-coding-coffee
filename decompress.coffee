@@ -1,10 +1,11 @@
 assert = require 'assert'
 freqMap = require './frequencyMap'
 fs = require 'fs'
+digest = require './digest'
 
 MAX_BUFFER_SIZE = 10000000
 
-logger = ->
+logger = if process.verbose then console.log else ->
 
 binarySearch = (array, obj, entry) ->
   # optimize this to make binary search
@@ -15,7 +16,7 @@ binarySearch = (array, obj, entry) ->
   throw new Error "Value is not found with such probability #{entry}"
 
 readFile = (inputFile, callback) ->
-  console.log 'readFile() called'
+  logger 'readFile() called'
   fs.readFile inputFile, (err, buffer) ->
     if err
       callback err
@@ -23,11 +24,12 @@ readFile = (inputFile, callback) ->
       dictEntries = 1 + parseInt (buffer.readUInt8 0)
       filesize = parseInt (buffer.readUInt32LE 1)
       dictSize = dictEntries * 2
+      digestBuffer = buffer.slice 5 + dictSize, 5 + dictSize + 16
       freqMap.parseDictionary buffer, 5, dictEntries, (err, res) ->
         if err
           callback err
         else
-          callback null, res, buffer, 5 + dictSize, filesize
+          callback null, res, buffer, 16 + 5 + dictSize, filesize, digestBuffer
 
 isUnderflow = (low, high) ->
   (low & 0x4000) && !(high & 0x4000)
@@ -35,7 +37,7 @@ isUnderflow = (low, high) ->
 decToBin = (num) ->
   (num >>> 0).toString 2
 
-writeBufferToFile = (buffer, filename) ->
+writeBufferToFile = (buffer, filename, digestBuffer) ->
   filename = filename || 'test.out'
   console.log "Saving file to #{filename}"
   fs.writeFile filename, buffer, (err, res) ->
@@ -44,10 +46,11 @@ writeBufferToFile = (buffer, filename) ->
       console.error err
     else
       console.log 'file was written'
+      digest.md5verify buffer, digestBuffer
 decompress = (inputFile, outputFile) ->
   # TODO: remove this line
   logger 'decompress is called'
-  readFile inputFile, (err, dictionary, buffer, startOffset, filesize) ->
+  readFile inputFile, (err, dictionary, buffer, startOffset, filesize, digestBuffer) ->
     if err
       console.error err
     else
@@ -57,14 +60,11 @@ decompress = (inputFile, outputFile) ->
       shiftCount = 0
       offset = startOffset
       lowValues = dictionary.lowValues
-      console.dir lowValues
+      logger lowValues
       highValues = dictionary.highValues
       keys = dictionary.keys
-      logger 'high values is '
-      console.dir highValues
-      logger 'low values is '
-      console.dir lowValues
-      console.dir keys
+      logger 'low values are ', lowValues
+      logger 'keys are ', keys
       scale = dictionary.scale
       high = 0xFFFF
       low = 0x0000
@@ -111,7 +111,7 @@ decompress = (inputFile, outputFile) ->
             else
               break
               # nextCode = 0
-      writeBufferToFile (outBuffer.slice 0, outBufferIndex), outputFile
+      writeBufferToFile (outBuffer.slice 0, outBufferIndex), outputFile, digestBuffer
 
 module.exports =
   decompress: decompress

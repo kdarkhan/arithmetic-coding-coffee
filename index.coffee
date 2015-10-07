@@ -7,7 +7,6 @@ init = ->
   toBoolean = (arg) ->
       !!arg
   parser = new ArgumentParser
-    version : '0.1'
     addHelp : true
     description : 'Simple compress/decompress utility'
 
@@ -21,14 +20,23 @@ init = ->
     nargs : '?'
     constant : true
 
+  parser.addArgument ['-v', '--verbose'],
+    help : 'Print verbose messages'
+    nargs : '?'
+    constant : true
+
   parser.addArgument ['-f', '--inputFile'],
     help : 'Input file to the programm'
     required : true
 
   parser.addArgument ['-o', '--outputFile'],
     help: 'Name of the output file'
+    required : true
 
   args = parser.parseArgs()
+
+  if args.verbose
+    process.verbose = true
 
   if args.extract
     decompress.decompress args.inputFile, args.outputFile

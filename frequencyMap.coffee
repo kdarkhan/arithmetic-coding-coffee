@@ -1,3 +1,4 @@
+logger = if process.verbose then console.log else ->
 
 scaleFrequencyMap = (freqMap, maxValue) ->
   scaled = maxValue / 256.0
@@ -31,7 +32,7 @@ scaleFrequencyMap = (freqMap, maxValue) ->
   scale: sum
 
 createFrequencyMap = (dataBuffer, callback) ->
-  console.log 'createFrequencyMap() called'
+  logger 'createFrequencyMap() called'
   freqMap = []
   largest = 0
   for index in [0 ... dataBuffer.length]
@@ -59,7 +60,7 @@ writeDictionary = (buffer, freqMap, startOffset, callback) ->
   callback null, nextOffset - startOffset
 
 parseDictionary = (buffer, startOffset, entryCount, callback) ->
-  console.log 'parseDictionary called with dictionary size ' + entryCount
+  logger 'parseDictionary called with dictionary size ' + entryCount
 
   highValues = {}
   lowValues = {}
